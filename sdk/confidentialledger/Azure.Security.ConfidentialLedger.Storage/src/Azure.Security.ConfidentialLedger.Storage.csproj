@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Client library for coordinating Azure Confidential Ledger registration with Azure Blob Storage.</Description>
+    <AssemblyTitle>Azure Confidential Ledger Storage client library</AssemblyTitle>
+    <Version>1.0.0-beta.1</Version>
+    <TargetFrameworks>$(RequiredTargetFrameworks)</TargetFrameworks>
+    <GenerateAPIListing>true</GenerateAPIListing>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Core" />
+    <PackageReference Include="Azure.Storage.Blobs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Azure.Security.ConfidentialLedger\src\Azure.Security.ConfidentialLedger.csproj" />
+  </ItemGroup>
+</Project>

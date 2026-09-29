@@ -1,13 +1,31 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 namespace Azure.Security.ConfidentialLedger.Storage
 {
     /// <summary>
-    /// The status of the blob digest registration.
+    /// Describes the outcome of uploading a blob and registering its digest.
     /// </summary>
     public enum BlobDigestRegistrationStatus
     {
-        UploadedAndRegistered,     // both steps succeeded, transaction committed
-        UploadedRegistrationPending, // uploaded; entry posted but commit not confirmed
-        UploadedRegistrationFailed,  // uploaded; ledger registration failed -> recoverable
-        NotUploaded                  // upload itself failed -> nothing to recover
+        /// <summary>
+        /// The blob was uploaded and its ledger transaction was committed.
+        /// </summary>
+        UploadedAndRegistered,
+
+        /// <summary>
+        /// The blob was uploaded and the ledger entry was posted, but commitment was not confirmed.
+        /// </summary>
+        UploadedRegistrationPending,
+
+        /// <summary>
+        /// The blob was uploaded, but ledger registration failed.
+        /// </summary>
+        UploadedRegistrationFailed,
+
+        /// <summary>
+        /// The blob upload failed.
+        /// </summary>
+        NotUploaded
     }
 }
