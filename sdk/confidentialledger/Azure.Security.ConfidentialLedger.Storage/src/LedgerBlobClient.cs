@@ -5,9 +5,10 @@ using Azure.Core;
 using Azure.Security.ConfidentialLedger;
 using Azure.Storage.Blobs;
 using System;
+using System.IO;
+using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
-using System.IO;
 using System.Threading;
 
 namespace Azure.Security.ConfidentialLedger.Storage
@@ -99,12 +100,12 @@ namespace Azure.Security.ConfidentialLedger.Storage
         /// Uploads a blob and registers its digest in Confidential Ledger.
         /// </summary>
         /// <param name="blobName">The name of the blob to upload.</param>
-        /// <param name="content">The stream containing the blob content.</param>
+        /// <param name="content">The byte array containing the blob content.</param>
         /// <param name="cancellationToken">The token used to request cancellation of the operation.</param>
         /// <returns>The response containing the blob digest registration result.</returns>
         public virtual Response<BlobDigestRegistrationResult> UploadAndRegisterBlob(
             string blobName,
-            Stream content,
+            byte[] content,
             CancellationToken cancellationToken = default)
         {
             if (blobName == null)
@@ -117,21 +118,25 @@ namespace Azure.Security.ConfidentialLedger.Storage
                 throw new ArgumentNullException(nameof(content));
             }
 
-            // Implementation for uploading the blob to the container
-            // and registering its digest with the ledger would go here.
-            throw new NotImplementedException();
+            var upload = UploadContentToBlob(blobName, content, cancellationToken);
+            if (upload.Error != null)
+            {
+                ExceptionDispatchInfo.Capture(upload.Error).Throw();
+            }
+
+            throw new NotImplementedException("Digest computation and ledger registration are not implemented yet.");
         }
 
         /// <summary>
         /// Uploads a blob and registers its digest in Confidential Ledger.
         /// </summary>
         /// <param name="blobName">The name of the blob to upload.</param>
-        /// <param name="content">The stream containing the blob content.</param>
+        /// <param name="content">The byte array containing the blob content.</param>
         /// <param name="cancellationToken">The token used to request cancellation of the operation.</param>
         /// <returns>The response containing the blob digest registration result.</returns>
-        public virtual Task<Response<BlobDigestRegistrationResult>> UploadAndRegisterBlobAsync(
+        public virtual async Task<Response<BlobDigestRegistrationResult>> UploadAndRegisterBlobAsync(
             string blobName,
-            Stream content,
+            byte[] content,
             CancellationToken cancellationToken = default)
         {
             if (blobName == null)
@@ -144,9 +149,99 @@ namespace Azure.Security.ConfidentialLedger.Storage
                 throw new ArgumentNullException(nameof(content));
             }
 
-            // Implementation for uploading the blob to the container
-            // and registering its digest with the ledger would go here.
-            throw new NotImplementedException();
+            var upload = await UploadContentToBlobAsync(blobName, content, cancellationToken).ConfigureAwait(false);
+            if (upload.Error != null)
+            {
+                ExceptionDispatchInfo.Capture(upload.Error).Throw();
+            }
+
+            throw new NotImplementedException("Digest computation and ledger registration are not implemented yet.");
+        }
+
+        private (Uri BlobUri, RequestFailedException Error) UploadContentToBlob(
+            string blobName,
+            byte[] content,
+            CancellationToken cancellationToken)
+                {
+                    BlobClient blob = _blobContainerClient.GetBlobClient(blobName);
+
+                    try
+                    {
+                        using var stream = new MemoryStream(content, writable: false);
+                        blob.Upload(
+                            stream,
+                            overwrite: false,
+                            cancellationToken: cancellationToken);
+
+                        return (blob.Uri, null);
+                    }
+                    catch (RequestFailedException ex)
+                    {
+                        return (null, ex);
+                    }
+                }
+
+        internal async Task<(Uri BlobUri, RequestFailedException Error)> UploadContentToBlobAsync(
+            string blobName,
+            byte[] content,
+            CancellationToken cancellationToken)
+                {
+                    BlobClient blob = _blobContainerClient.GetBlobClient(blobName);
+
+                    try
+                    {
+                        using var stream = new MemoryStream(content, writable: false);
+                        await blob.UploadAsync(
+                            stream,
+                            overwrite: false,
+                            cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                        return (blob.Uri, null);
+                    }
+                    catch (RequestFailedException ex)
+                    {
+                        return (null, ex);
+                    }
+                }
+
+        private (string TransactionId, RequestFailedException Error) RegisterDigestInLedger(
+            string digest,
+            CancellationToken cancellationToken)
+        {
+            using RequestContent content = RequestContent.Create("{\"contents\":\"" + digest + "\"}");
+            try
+            {
+                Azure.Operation operation = _ledgerClient.PostLedgerEntry(
+                    Azure.WaitUntil.Completed,
+                    content,
+                    context: new RequestContext { CancellationToken = cancellationToken });
+
+                return (operation.Id, null);
+            }
+            catch (RequestFailedException ex)
+            {
+                return (null, ex);
+            }
+        }
+
+        internal async Task<(string TransactionId, RequestFailedException Error)> RegisterDigestInLedgerAsync(
+            string digest,
+            CancellationToken cancellationToken)
+        {
+            using RequestContent content = RequestContent.Create("{\"contents\":\"" + digest + "\"}");
+            try
+            {
+                Azure.Operation operation = await _ledgerClient.PostLedgerEntryAsync(
+                    Azure.WaitUntil.Completed,
+                    content,
+                    context: new RequestContext { CancellationToken = cancellationToken }).ConfigureAwait(false);
+
+                return (operation.Id, null);
+            }
+            catch (RequestFailedException ex)
+            {
+                return (null, ex);
+            }
         }
 
         private static string ComputeImmutableBlobHash(byte[] logEvent)

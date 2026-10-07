@@ -24,6 +24,14 @@ namespace Azure.Security.ConfidentialLedger.Storage
         }
 
         /// <summary>
+        /// Initializes a new instance of <see cref="LedgerBlobClientOptions"/>.
+        /// </summary>
+        /// <param name="version">The service version.</param>
+        public LedgerBlobClientOptions(ServiceVersion version = ServiceVersion.V1_0)
+        {
+        }
+
+        /// <summary>
         /// Gets or sets the options used to configure the Confidential Ledger client.
         /// </summary>
         public ConfidentialLedgerClientOptions LedgerClientOptions { get; set; } = new ConfidentialLedgerClientOptions();

@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="$(AzureCoreTestFramework)" />
     <ProjectReference Include="..\src\Azure.Security.ConfidentialLedger.Storage.csproj" />
   </ItemGroup>
 </Project>
