@@ -113,6 +113,47 @@ namespace Azure.Security.ConfidentialLedger.Storage.Tests
 
         [LiveOnly]
         [RecordedTest]
+        public async Task UploadAndRegisterBlobAsync_UploadsAndRegistersSuccessfully()
+        {
+            var client = new LedgerBlobClient(
+                TestEnvironment.LedgerUri,
+                TestEnvironment.BlobContainerUri,
+                TestEnvironment.Credential);
+
+            string blobName = $"workflow-live-test-{Guid.NewGuid():N}.txt";
+            byte[] content = Encoding.UTF8.GetBytes("Hello from the complete upload and register workflow.");
+
+            Response<BlobDigestRegistrationResult> response =
+                await client.UploadAndRegisterBlobAsync(blobName, content, CancellationToken.None);
+            BlobDigestRegistrationResult result = response.Value;
+
+            TestContext.Out.WriteLine($"[WorkflowResult] Status: {result.Status}");
+            TestContext.Out.WriteLine($"[WorkflowResult] Blob URI: {result.BlobUri}");
+            TestContext.Out.WriteLine($"[WorkflowResult] Transaction ID: {result.TransactionId}");
+            TestContext.Out.WriteLine($"[WorkflowResult] HTTP status: {result.HttpStatus?.ToString() ?? "<null>"}");
+            TestContext.Out.WriteLine($"[WorkflowResult] Error code: {result.ErrorCode ?? "<null>"}");
+            TestContext.Out.WriteLine($"[WorkflowResult] Error message: {result.ErrorMessage ?? "<null>"}");
+            TestContext.Out.WriteLine($"[WorkflowResult] Raw response HTTP status: {response.GetRawResponse().Status}");
+
+            Assert.That(result.Status, Is.EqualTo(BlobDigestRegistrationStatus.UploadedAndRegistered));
+            Assert.That(result.TransactionId, Is.Not.Null.And.Not.Empty);
+            Assert.That(result.HttpStatus, Is.Null);
+            Assert.That(result.ErrorCode, Is.Null);
+            Assert.That(result.ErrorMessage, Is.Null);
+            Assert.That(response.GetRawResponse().Status, Is.EqualTo(200));
+
+            var container = new BlobContainerClient(TestEnvironment.BlobContainerUri, TestEnvironment.Credential);
+            BlobClient blob = container.GetBlobClient(blobName);
+            Assert.That(result.BlobUri, Is.EqualTo(blob.Uri));
+
+            var download = await blob.DownloadContentAsync();
+            Assert.That(download.Value.Content.ToArray(), Is.EqualTo(content));
+
+            // Retain the blob for inspection in the Azure portal.
+        }
+
+        [LiveOnly]
+        [RecordedTest]
         public async Task RegisterDigestInLedgerAsync_CompletesSuccessfully()
         {
             var client = new LedgerBlobClient(
