@@ -154,6 +154,78 @@ namespace Azure.Security.ConfidentialLedger.Storage.Tests
 
         [LiveOnly]
         [RecordedTest]
+        public async Task UploadAndRegisterBlobAsync_FailsAtLedgerWrite()
+        {
+            var client = new LedgerBlobClient(
+               TestEnvironment.LedgerUri,
+                TestEnvironment.BlobContainerUri,
+                TestEnvironment.Credential);
+
+            string blobName = $"ledger-write-failure-{Guid.NewGuid():N}.txt";
+            byte[] content = Encoding.UTF8.GetBytes("This should upload, then fail on ledger registration.");
+
+            Response<BlobDigestRegistrationResult> response =
+                await client.UploadAndRegisterBlobAsync(blobName, content, CancellationToken.None);
+
+            BlobDigestRegistrationResult result = response.Value;
+
+            TestContext.Out.WriteLine($"[LedgerFailureResult] Status: {result.Status}");
+            TestContext.Out.WriteLine($"[LedgerFailureResult] Blob URI: {result.BlobUri}");
+            TestContext.Out.WriteLine($"[LedgerFailureResult] Transaction ID: {result.TransactionId ?? "<null>"}");
+            TestContext.Out.WriteLine($"[LedgerFailureResult] HTTP status: {result.HttpStatus?.ToString() ?? "<null>"}");
+            TestContext.Out.WriteLine($"[LedgerFailureResult] Error code: {result.ErrorCode ?? "<null>"}");
+            TestContext.Out.WriteLine($"[LedgerFailureResult] Error message: {result.ErrorMessage ?? "<null>"}");
+
+            Assert.That(result.Status, Is.EqualTo(BlobDigestRegistrationStatus.UploadedRegistrationFailed));
+            Assert.That(result.BlobUri, Is.Not.Null);
+            Assert.That(result.TransactionId, Is.Null.Or.Empty);
+            Assert.That(result.HttpStatus, Is.Not.Null);
+            Assert.That(result.ErrorCode, Is.Not.Null.And.Not.Empty);
+            Assert.That(result.ErrorMessage, Is.Not.Null.And.Not.Empty);
+
+            // Optional: verify the blob is present in storage.
+            var container = new BlobContainerClient(TestEnvironment.BlobContainerUri, TestEnvironment.Credential);
+            BlobClient blob = container.GetBlobClient(blobName);
+            var exists = await blob.ExistsAsync();
+            Assert.That(exists.Value, Is.True);
+        }
+
+        [LiveOnly]
+        [RecordedTest]
+        public async Task UploadAndRegisterBlobAsync_FailsAtBlobUpload()
+        {
+            // Use a valid ledger, but a blob container or identity that cannot write.
+            var client = new LedgerBlobClient(
+                TestEnvironment.LedgerUri,
+                TestEnvironment.BlobContainerUri,
+                TestEnvironment.Credential);
+
+            string blobName = $"blob-failure-live-test-{Guid.NewGuid():N}.txt";
+            byte[] content = Encoding.UTF8.GetBytes("This will fail at the blob upload stage.");
+
+            Response<BlobDigestRegistrationResult> response =
+                await client.UploadAndRegisterBlobAsync(blobName, content, CancellationToken.None);
+
+            BlobDigestRegistrationResult result = response.Value;
+
+            TestContext.Out.WriteLine($"[BlobUploadFailure] Status: {result.Status}");
+            TestContext.Out.WriteLine($"[BlobUploadFailure] Blob URI: {(result.BlobUri == null ? "<null>" : result.BlobUri.ToString())}");
+            TestContext.Out.WriteLine($"[BlobUploadFailure] Transaction ID: {result.TransactionId ?? "<null>"}");
+            TestContext.Out.WriteLine($"[BlobUploadFailure] HTTP status: {result.HttpStatus?.ToString() ?? "<null>"}");
+            TestContext.Out.WriteLine($"[BlobUploadFailure] Error code: {result.ErrorCode ?? "<null>"}");
+            TestContext.Out.WriteLine($"[BlobUploadFailure] Error message: {result.ErrorMessage ?? "<null>"}");
+
+            Assert.That(result.Status, Is.EqualTo(BlobDigestRegistrationStatus.NotUploaded));
+            Assert.That(result.BlobUri, Is.Null);
+            Assert.That(result.TransactionId, Is.Null.Or.Empty);
+            Assert.That(result.HttpStatus, Is.Not.Null);
+            Assert.That(result.ErrorCode, Is.Not.Null.And.Not.Empty);
+            Assert.That(result.ErrorMessage, Is.Not.Null.And.Not.Empty);
+            Assert.That(response.GetRawResponse().Status, Is.GreaterThanOrEqualTo(400));
+        }
+
+        [LiveOnly]
+        [RecordedTest]
         public async Task RegisterDigestInLedgerAsync_CompletesSuccessfully()
         {
             var client = new LedgerBlobClient(

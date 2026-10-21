@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-
+using Azure;
 using Azure.Core;
 using Azure.Security.ConfidentialLedger;
 using Azure.Storage.Blobs;
