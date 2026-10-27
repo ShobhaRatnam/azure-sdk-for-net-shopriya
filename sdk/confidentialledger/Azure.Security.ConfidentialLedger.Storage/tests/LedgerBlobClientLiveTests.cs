@@ -127,7 +127,6 @@ namespace Azure.Security.ConfidentialLedger.Storage.Tests
                 await client.UploadAndRegisterBlobAsync(blobName, content, CancellationToken.None);
             BlobDigestRegistrationResult result = response.Value;
 
-            TestContext.Out.WriteLine($"[WorkflowResult] Status: {result.Status}");
             TestContext.Out.WriteLine($"[WorkflowResult] Blob URI: {result.BlobUri}");
             TestContext.Out.WriteLine($"[WorkflowResult] Transaction ID: {result.TransactionId}");
             TestContext.Out.WriteLine($"[WorkflowResult] HTTP status: {result.HttpStatus?.ToString() ?? "<null>"}");
@@ -135,7 +134,6 @@ namespace Azure.Security.ConfidentialLedger.Storage.Tests
             TestContext.Out.WriteLine($"[WorkflowResult] Error message: {result.ErrorMessage ?? "<null>"}");
             TestContext.Out.WriteLine($"[WorkflowResult] Raw response HTTP status: {response.GetRawResponse().Status}");
 
-            Assert.That(result.Status, Is.EqualTo(BlobDigestRegistrationStatus.UploadedAndRegistered));
             Assert.That(result.TransactionId, Is.Not.Null.And.Not.Empty);
             Assert.That(result.HttpStatus, Is.Null);
             Assert.That(result.ErrorCode, Is.Null);
@@ -169,14 +167,12 @@ namespace Azure.Security.ConfidentialLedger.Storage.Tests
 
             BlobDigestRegistrationResult result = response.Value;
 
-            TestContext.Out.WriteLine($"[LedgerFailureResult] Status: {result.Status}");
             TestContext.Out.WriteLine($"[LedgerFailureResult] Blob URI: {result.BlobUri}");
             TestContext.Out.WriteLine($"[LedgerFailureResult] Transaction ID: {result.TransactionId ?? "<null>"}");
             TestContext.Out.WriteLine($"[LedgerFailureResult] HTTP status: {result.HttpStatus?.ToString() ?? "<null>"}");
             TestContext.Out.WriteLine($"[LedgerFailureResult] Error code: {result.ErrorCode ?? "<null>"}");
             TestContext.Out.WriteLine($"[LedgerFailureResult] Error message: {result.ErrorMessage ?? "<null>"}");
 
-            Assert.That(result.Status, Is.EqualTo(BlobDigestRegistrationStatus.UploadedRegistrationFailed));
             Assert.That(result.BlobUri, Is.Not.Null);
             Assert.That(result.TransactionId, Is.Null.Or.Empty);
             Assert.That(result.HttpStatus, Is.Not.Null);
@@ -208,14 +204,12 @@ namespace Azure.Security.ConfidentialLedger.Storage.Tests
 
             BlobDigestRegistrationResult result = response.Value;
 
-            TestContext.Out.WriteLine($"[BlobUploadFailure] Status: {result.Status}");
             TestContext.Out.WriteLine($"[BlobUploadFailure] Blob URI: {(result.BlobUri == null ? "<null>" : result.BlobUri.ToString())}");
             TestContext.Out.WriteLine($"[BlobUploadFailure] Transaction ID: {result.TransactionId ?? "<null>"}");
             TestContext.Out.WriteLine($"[BlobUploadFailure] HTTP status: {result.HttpStatus?.ToString() ?? "<null>"}");
             TestContext.Out.WriteLine($"[BlobUploadFailure] Error code: {result.ErrorCode ?? "<null>"}");
             TestContext.Out.WriteLine($"[BlobUploadFailure] Error message: {result.ErrorMessage ?? "<null>"}");
 
-            Assert.That(result.Status, Is.EqualTo(BlobDigestRegistrationStatus.NotUploaded));
             Assert.That(result.BlobUri, Is.Null);
             Assert.That(result.TransactionId, Is.Null.Or.Empty);
             Assert.That(result.HttpStatus, Is.Not.Null);

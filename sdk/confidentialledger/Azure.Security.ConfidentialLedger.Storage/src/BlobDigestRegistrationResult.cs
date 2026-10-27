@@ -21,11 +21,6 @@ namespace Azure.Security.ConfidentialLedger.Storage
         public string TransactionId { get; internal set; }
 
         /// <summary>
-        /// Gets the status of the blob upload and digest registration workflow.
-        /// </summary>
-        public BlobDigestRegistrationStatus Status { get; internal set; }
-
-        /// <summary>
         /// Gets the HTTP status code if an underlying service request failed.
         /// </summary>
         public int? HttpStatus { get; internal set; }

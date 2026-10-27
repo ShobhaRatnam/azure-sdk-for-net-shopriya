@@ -8,6 +8,7 @@ using System;
 using System.IO;
 using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using System.Threading;
 
@@ -38,7 +39,7 @@ namespace Azure.Security.ConfidentialLedger.Storage
             Uri ledgerEndpoint,
             Uri blobContainerUri,
             TokenCredential credential)
-            : this(ledgerEndpoint, blobContainerUri, credential, new LedgerBlobClientOptions())
+            : this(ledgerEndpoint, blobContainerUri, credential, ledgerCertificate: null, new LedgerBlobClientOptions())
         {
         }
 
@@ -53,6 +54,40 @@ namespace Azure.Security.ConfidentialLedger.Storage
             Uri ledgerEndpoint,
             Uri blobContainerUri,
             TokenCredential credential,
+            LedgerBlobClientOptions options)
+            : this(ledgerEndpoint, blobContainerUri, credential, ledgerCertificate: null, options)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of <see cref="LedgerBlobClient"/>.
+        /// </summary>
+        /// <param name="ledgerEndpoint">The URI of the Confidential Ledger.</param>
+        /// <param name="blobContainerUri">The URI of the Blob Storage container.</param>
+        /// <param name="credential">The credential used to authenticate to Blob Storage.</param>
+        /// <param name="ledgerCertificate">The certificate used to authenticate to the Confidential Ledger.</param>
+        public LedgerBlobClient(
+            Uri ledgerEndpoint,
+            Uri blobContainerUri,
+            TokenCredential credential,
+            X509Certificate2 ledgerCertificate)
+            : this(ledgerEndpoint, blobContainerUri, credential, ledgerCertificate, new LedgerBlobClientOptions())
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of <see cref="LedgerBlobClient"/>.
+        /// </summary>
+        /// <param name="ledgerEndpoint">The URI of the Confidential Ledger.</param>
+        /// <param name="blobContainerUri">The URI of the Blob Storage container.</param>
+        /// <param name="credential">The credential used to authenticate to Blob Storage.</param>
+        /// <param name="ledgerCertificate">The certificate used to authenticate to the Confidential Ledger.</param>
+        /// <param name="options">The options used to configure the underlying clients.</param>
+        public LedgerBlobClient(
+            Uri ledgerEndpoint,
+            Uri blobContainerUri,
+            TokenCredential credential,
+            X509Certificate2 ledgerCertificate,
             LedgerBlobClientOptions options)
         {
             if (ledgerEndpoint == null)
@@ -75,25 +110,23 @@ namespace Azure.Security.ConfidentialLedger.Storage
                 throw new ArgumentNullException(nameof(options));
             }
 
-            if (options.LedgerClientOptions == null)
-            {
-                throw new ArgumentNullException(nameof(options.LedgerClientOptions));
-            }
+            ConfidentialLedgerClientOptions ledgerOptions = options.LedgerClientOptions ?? new ConfidentialLedgerClientOptions();
+            BlobClientOptions blobOptions = options.BlobClientOptions ?? new BlobClientOptions();
 
-            if (options.BlobClientOptions == null)
-            {
-                throw new ArgumentNullException(nameof(options.BlobClientOptions));
-            }
-
-            _ledgerClient = new ConfidentialLedgerClient(
-                ledgerEndpoint,
-                credential,
-                options.LedgerClientOptions);
+            _ledgerClient = ledgerCertificate != null
+                ? new ConfidentialLedgerClient(
+                    ledgerEndpoint,
+                    ledgerCertificate,
+                    ledgerOptions)
+                : new ConfidentialLedgerClient(
+                    ledgerEndpoint,
+                    credential,
+                    ledgerOptions);
 
             _blobContainerClient = new BlobContainerClient(
                 blobContainerUri,
                 credential,
-                options.BlobClientOptions);
+                blobOptions);
         }
 
         /// <summary>
@@ -127,7 +160,6 @@ namespace Azure.Security.ConfidentialLedger.Storage
 
             if (upload.Error != null)
             {
-                result.Status = BlobDigestRegistrationStatus.NotUploaded;
                 result.HttpStatus = upload.Error.Status;
                 result.ErrorCode = upload.Error.ErrorCode;
                 result.ErrorMessage = upload.Error.Message;
@@ -144,7 +176,6 @@ namespace Azure.Security.ConfidentialLedger.Storage
             var registration = RegisterDigestInLedger(digest, cancellationToken);
             if (registration.Error != null)
             {
-                result.Status = BlobDigestRegistrationStatus.UploadedRegistrationFailed;
                 result.HttpStatus = registration.Error.Status;
                 result.ErrorCode = registration.Error.ErrorCode;
                 result.ErrorMessage = registration.Error.Message;
@@ -159,7 +190,6 @@ namespace Azure.Security.ConfidentialLedger.Storage
             }
 
             result.TransactionId = registration.TransactionId;
-            result.Status = BlobDigestRegistrationStatus.UploadedAndRegistered;
             return Response.FromValue(result, registration.RawResponse);
         }
 
@@ -194,7 +224,6 @@ namespace Azure.Security.ConfidentialLedger.Storage
 
             if (upload.Error != null)
             {
-                result.Status = BlobDigestRegistrationStatus.NotUploaded;
                 result.HttpStatus = upload.Error.Status;
                 result.ErrorCode = upload.Error.ErrorCode;
                 result.ErrorMessage = upload.Error.Message;
@@ -211,7 +240,6 @@ namespace Azure.Security.ConfidentialLedger.Storage
             var registration = await RegisterDigestInLedgerAsync(digest, cancellationToken).ConfigureAwait(false);
             if (registration.Error != null)
             {
-                result.Status = BlobDigestRegistrationStatus.UploadedRegistrationFailed;
                 result.HttpStatus = registration.Error.Status;
                 result.ErrorCode = registration.Error.ErrorCode;
                 result.ErrorMessage = registration.Error.Message;
@@ -226,7 +254,6 @@ namespace Azure.Security.ConfidentialLedger.Storage
             }
 
             result.TransactionId = registration.TransactionId;
-            result.Status = BlobDigestRegistrationStatus.UploadedAndRegistered;
             return Response.FromValue(result, registration.RawResponse);
         }
 

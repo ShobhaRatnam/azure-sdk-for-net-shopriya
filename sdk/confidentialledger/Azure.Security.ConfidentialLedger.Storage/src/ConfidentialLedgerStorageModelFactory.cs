@@ -15,7 +15,6 @@ namespace Azure.Security.ConfidentialLedger.Storage
         /// </summary>
         /// <param name="blobUri">The URI of the uploaded blob.</param>
         /// <param name="transactionId">The Confidential Ledger transaction ID.</param>
-        /// <param name="status">The outcome of the workflow.</param>
         /// <param name="httpStatus">The HTTP status code for a failed service request.</param>
         /// <param name="errorCode">The service-specific error code.</param>
         /// <param name="errorMessage">The service error message.</param>
@@ -23,7 +22,6 @@ namespace Azure.Security.ConfidentialLedger.Storage
         public static BlobDigestRegistrationResult BlobDigestRegistrationResult(
             Uri blobUri,
             string transactionId,
-            BlobDigestRegistrationStatus status,
             int? httpStatus,
             string errorCode,
             string errorMessage)
@@ -32,7 +30,6 @@ namespace Azure.Security.ConfidentialLedger.Storage
             {
                 BlobUri = blobUri,
                 TransactionId = transactionId,
-                Status = status,
                 HttpStatus = httpStatus,
                 ErrorCode = errorCode,
                 ErrorMessage = errorMessage
