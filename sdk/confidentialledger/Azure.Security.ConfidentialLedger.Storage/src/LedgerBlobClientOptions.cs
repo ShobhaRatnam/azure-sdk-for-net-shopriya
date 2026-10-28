@@ -40,5 +40,10 @@ namespace Azure.Security.ConfidentialLedger.Storage
         /// Gets or sets the options used to configure the Blob Storage client.
         /// </summary>
         public BlobClientOptions BlobClientOptions { get; set; } = new BlobClientOptions();
+
+        /// <summary>
+        /// Gets or sets the hashing algorithm used to hash the payload.
+        /// </summary>
+        public LedgerBlobHashAlgorithm HashAlgorithm { get; set; } = LedgerBlobHashAlgorithm.Sha256;
     }
 }

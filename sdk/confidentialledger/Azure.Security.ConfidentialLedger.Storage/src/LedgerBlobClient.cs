@@ -21,6 +21,7 @@ namespace Azure.Security.ConfidentialLedger.Storage
     {
         private readonly ConfidentialLedgerClient _ledgerClient;
         private readonly BlobContainerClient _blobContainerClient;
+        private readonly LedgerBlobHashAlgorithm _hashAlgorithm;
 
         /// <summary>
         /// Initializes a new instance for mocking.
@@ -112,6 +113,7 @@ namespace Azure.Security.ConfidentialLedger.Storage
 
             ConfidentialLedgerClientOptions ledgerOptions = options.LedgerClientOptions ?? new ConfidentialLedgerClientOptions();
             BlobClientOptions blobOptions = options.BlobClientOptions ?? new BlobClientOptions();
+            _hashAlgorithm = options.HashAlgorithm;
 
             _ledgerClient = ledgerCertificate != null
                 ? new ConfidentialLedgerClient(
@@ -151,7 +153,7 @@ namespace Azure.Security.ConfidentialLedger.Storage
                 throw new ArgumentNullException(nameof(content));
             }
 
-            string digest = ComputeImmutableBlobHash(content);
+            string digest = ComputeImmutableBlobHash(content, _hashAlgorithm);
             var upload = UploadContentToBlob(blobName, content, cancellationToken);
             var result = new BlobDigestRegistrationResult
             {
@@ -215,7 +217,7 @@ namespace Azure.Security.ConfidentialLedger.Storage
                 throw new ArgumentNullException(nameof(content));
             }
 
-            string digest = ComputeImmutableBlobHash(content);
+            string digest = ComputeImmutableBlobHash(content, _hashAlgorithm);
             var upload = await UploadContentToBlobAsync(blobName, content, cancellationToken).ConfigureAwait(false);
             var result = new BlobDigestRegistrationResult
             {
@@ -343,19 +345,20 @@ namespace Azure.Security.ConfidentialLedger.Storage
             }
         }
 
-        private static string ComputeImmutableBlobHash(byte[] logEvent)
+        private static string ComputeImmutableBlobHash(byte[] logEvent, LedgerBlobHashAlgorithm hashAlgorithm)
         {
             if (logEvent == null)
             {
                 throw new ArgumentNullException(nameof(logEvent));
             }
 
-            byte[] hashBytes;
-            using (SHA256 sha256 = SHA256.Create())
+            using HashAlgorithm algorithm = hashAlgorithm switch
             {
-                hashBytes = sha256.ComputeHash(logEvent);
-            }
+                LedgerBlobHashAlgorithm.Sha256 => SHA256.Create(),
+                _ => throw new ArgumentOutOfRangeException(nameof(hashAlgorithm), hashAlgorithm, "Unsupported hash algorithm.")
+            };
 
+            byte[] hashBytes = algorithm.ComputeHash(logEvent);
             return Convert.ToBase64String(hashBytes);
         }
     }
