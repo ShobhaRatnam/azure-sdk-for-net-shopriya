@@ -192,6 +192,7 @@ namespace Azure.Security.ConfidentialLedger.Storage
             }
 
             result.TransactionId = registration.TransactionId;
+            result.HttpStatus = registration.RawResponse.Status;
             return Response.FromValue(result, registration.RawResponse);
         }
 
@@ -256,6 +257,7 @@ namespace Azure.Security.ConfidentialLedger.Storage
             }
 
             result.TransactionId = registration.TransactionId;
+            result.HttpStatus = registration.RawResponse.Status;
             return Response.FromValue(result, registration.RawResponse);
         }
 

@@ -135,7 +135,7 @@ namespace Azure.Security.ConfidentialLedger.Storage.Tests
             TestContext.Out.WriteLine($"[WorkflowResult] Raw response HTTP status: {response.GetRawResponse().Status}");
 
             Assert.That(result.TransactionId, Is.Not.Null.And.Not.Empty);
-            Assert.That(result.HttpStatus, Is.Null);
+            Assert.That(result.HttpStatus, Is.EqualTo(200));
             Assert.That(result.ErrorCode, Is.Null);
             Assert.That(result.ErrorMessage, Is.Null);
             Assert.That(response.GetRawResponse().Status, Is.EqualTo(200));
@@ -154,10 +154,13 @@ namespace Azure.Security.ConfidentialLedger.Storage.Tests
         [RecordedTest]
         public async Task UploadAndRegisterBlobAsync_FailsAtLedgerWrite()
         {
+            var options = new LedgerBlobClientOptions();
+            options.LedgerClientOptions.UseLedgerGateway = true;
             var client = new LedgerBlobClient(
                TestEnvironment.LedgerUri,
                 TestEnvironment.BlobContainerUri,
-                TestEnvironment.Credential);
+                TestEnvironment.Credential,
+                options);
 
             string blobName = $"ledger-write-failure-{Guid.NewGuid():N}.txt";
             byte[] content = Encoding.UTF8.GetBytes("This should upload, then fail on ledger registration.");
@@ -171,7 +174,7 @@ namespace Azure.Security.ConfidentialLedger.Storage.Tests
             TestContext.Out.WriteLine($"[LedgerFailureResult] Transaction ID: {result.TransactionId ?? "<null>"}");
             TestContext.Out.WriteLine($"[LedgerFailureResult] HTTP status: {result.HttpStatus?.ToString() ?? "<null>"}");
             TestContext.Out.WriteLine($"[LedgerFailureResult] Error code: {result.ErrorCode ?? "<null>"}");
-            TestContext.Out.WriteLine($"[LedgerFailureResult] Error message: {result.ErrorMessage ?? "<null>"}");
+            //TestContext.Out.WriteLine($"[LedgerFailureResult] Error message: {result.ErrorMessage ?? "<null>"}");
 
             Assert.That(result.BlobUri, Is.Not.Null);
             Assert.That(result.TransactionId, Is.Null.Or.Empty);
